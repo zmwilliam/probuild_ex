@@ -4,7 +4,6 @@ defmodule ProbuildEx.Repo.Migrations.CreateTeams do
   def change do
     create table(:teams) do
       add :name, :text, null: false
-      add :team_id, references(:teams, on_delete: :delete_all), null: false
 
       timestamps()
     end

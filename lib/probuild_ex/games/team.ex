@@ -1,4 +1,6 @@
 defmodule ProbuildEx.Games.Team do
+  @moduledoc false
+
   use Ecto.Schema
   import Ecto.Changeset
 

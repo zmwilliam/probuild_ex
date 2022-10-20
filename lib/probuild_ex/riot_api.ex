@@ -95,7 +95,9 @@ defmodule ProbuildEx.RiotApi do
   end
 
   defp fetch(client, path) do
-    case Tesla.get!(client, path) do
+    encoded_path = URI.encode(path)
+
+    case Tesla.get!(client, encoded_path) do
       %{status: 200, body: data} ->
         {:ok, data}
 
