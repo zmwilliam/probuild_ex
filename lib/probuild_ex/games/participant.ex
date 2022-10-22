@@ -4,6 +4,8 @@ defmodule ProbuildEx.Games.Participant do
 
   alias ProbuildEx.Games.{Game, Participant, Summoner}
 
+  @positions [:UTILITY, :TOP, :JUNGLE, :MIDDLE, :BOTTOM]
+
   @required_attrs [
     :assists,
     :champion_id,
@@ -16,9 +18,10 @@ defmodule ProbuildEx.Games.Participant do
     :team_id,
     :win,
     :game_id,
-    :summoner_id,
-    :opponent_participant_id
+    :summoner_id
   ]
+
+  @optional_attrs [:opponent_participant_id]
 
   schema "participants" do
     field :assists, :integer
@@ -29,7 +32,7 @@ defmodule ProbuildEx.Games.Participant do
     field :kills, :integer
     field :summoners, {:array, :integer}
     field :team_id, :integer
-    field :team_position, Ecto.Enum, values: [:UTILITY, :TOP, :JUNGLE, :MIDDLE, :BOTTOM]
+    field :team_position, Ecto.Enum, values: @positions
     field :win, :boolean, default: false
 
     belongs_to :game, Game
@@ -40,12 +43,14 @@ defmodule ProbuildEx.Games.Participant do
   end
 
   @doc false
-  def changeset(participant, attrs) do
+  def changeset(participant \\ %__MODULE__{}, attrs) do
     participant
-    |> cast(attrs, @required_attrs)
+    |> cast(attrs, @required_attrs ++ @optional_attrs)
     |> validate_required(@required_attrs)
     |> foreign_key_constraint(:game_id)
     |> foreign_key_constraint(:summoner_id)
     |> foreign_key_constraint(:opponent_participant_id)
   end
+
+  def get_positions(), do: @positions
 end

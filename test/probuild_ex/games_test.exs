@@ -4,6 +4,7 @@ defmodule ProbuildEx.GamesTest do
 
   import ProbuildEx.GamesFixtures
 
+  alias ProbuildEx.GameDataFixtures
   alias ProbuildEx.Games
 
   describe "team" do
@@ -56,6 +57,16 @@ defmodule ProbuildEx.GamesTest do
 
       assert {:error, :not_found} = Games.fetch_summoner(puuid: "1234")
     end
+
+    test "list_pro_summoners/1 should filter properly per region and pro" do
+      summoner_fixture(%{"platform_id" => "euw1"})
+      summoner_fixture(%{"platform_id" => "kr", "pro_id" => nil})
+      pro_kr = summoner_fixture(%{"platform_id" => "kr"})
+
+      result = Games.list_pro_summoners("kr")
+      assert length(result) == 1
+      assert [^pro_kr] = result
+    end
   end
 
   describe "pro transaction" do
@@ -84,6 +95,69 @@ defmodule ProbuildEx.GamesTest do
       assert result.team.name == @chovy_ugg["current_team"]
       assert result.pro.name == @chovy_ugg["official_name"]
       assert result.summoner.name == @chovy_summoner_riot["name"]
+    end
+  end
+
+  describe "game" do
+    test "Games.Game.changeset/2 should clean version" do
+      attrs = unique_game_attrs(%{"version" => "12.1.416.4011"})
+
+      assert {:ok, game} =
+               attrs
+               |> Games.Game.changeset()
+               |> apply_action(:insert)
+
+      assert game.version == "12.1.1"
+    end
+
+    test "Games.Game.changeset/2 should cast creation_int to unix timestamp to utc_datetime creation" do
+      attrs = unique_game_attrs(%{"creation_int" => 1_663_531_903_769})
+
+      assert {:ok, game} =
+               attrs
+               |> Games.Game.changeset()
+               |> apply_action(:insert)
+
+      assert game.creation == ~U[2022-09-18 20:11:43Z]
+    end
+
+    test "reject_existing_games/1 returns only ids not previously inserted" do
+      ids = ["KR_6176984279", "KR_6176897324", "KR_6176891477"]
+      result = Games.reject_existing_games(ids)
+      assert length(result) == 3
+      assert ^ids = result
+
+      game_fixture(%{"platform_id" => "kr", "riot_id" => "KR_6176897324"})
+      assert result = Games.reject_existing_games(ids)
+      assert length(result) == 2
+      assert ["KR_6176984279", "KR_6176891477"] = result
+    end
+
+    test "create_game_complete/3 should create a game, 10 summoners and 10 participants" do
+      data = GameDataFixtures.get()
+
+      assert {:ok, multi} =
+               Games.create_game_complete(
+                 data.platform_id,
+                 data.game_data,
+                 data.summoners_list
+               )
+
+      assert %Games.Game{} = multi[:game]
+
+      created_summoner =
+        for {{:summoner, _puuid}, summoner} <- multi do
+          assert %Games.Summoner{} = summoner
+        end
+
+      assert Enum.count(created_summoner) == 10
+
+      created_participants =
+        for {{:participant, _team_role}, participant} <- multi do
+          assert %Games.Participant{} = participant
+        end
+
+      assert Enum.count(created_participants) == 10
     end
   end
 end

@@ -21,7 +21,7 @@ defmodule ProbuildEx.Games.Summoner do
   end
 
   @doc false
-  def changeset(summoner, attrs) do
+  def changeset(summoner \\ %__MODULE__{}, attrs) do
     summoner
     |> cast(attrs, @required_attrs ++ @optional_attrs)
     |> validate_required(@required_attrs)
