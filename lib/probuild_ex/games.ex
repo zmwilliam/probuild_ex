@@ -189,7 +189,8 @@ defmodule ProbuildEx.Games do
            {:ok, summoner} <- update_or_create_summoner(attrs) do
         %{team: team, pro: pro, summoner: summoner}
       else
-        {:error, error} -> Repo.rollback(error)
+        {:error, error} ->
+          Repo.rollback(error)
       end
     end)
   end

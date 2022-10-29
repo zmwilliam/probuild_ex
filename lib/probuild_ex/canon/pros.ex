@@ -20,6 +20,7 @@ defmodule ProbuildEx.Canon.Pros do
         {:error, :not_found} -> {:error, :not_found}
       end
     end)
+    |> Stream.reject(&Kernel.match?({:error, _}, &1))
     |> Stream.map(fn {ugg_pro, summoner_data} ->
       ugg_pro
       |> Games.create_pro_complete(summoner_data)

@@ -20,10 +20,7 @@ defmodule ProbuildEx.Canon.Games do
         {match_data, summoner_list}
       end
     end)
-    |> Stream.reject(fn
-      {:error, _} -> true
-      {_match_data, _summoner_list} -> false
-    end)
+    |> Stream.reject(&Kernel.match?({:error, _}, &1))
     |> Stream.map(fn {match_data, summoner_list} ->
       platform_id
       |> Games.create_game_complete(match_data, summoner_list)

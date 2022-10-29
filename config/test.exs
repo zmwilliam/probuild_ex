@@ -25,3 +25,9 @@ config :logger, level: :warn
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
+
+config :probuild_ex, :canon,
+  games: [platform_ids: []],
+  pros: [platform_ids: []]
+
+config :tesla, adapter: Tesla.Mock
