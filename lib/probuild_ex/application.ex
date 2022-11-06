@@ -15,12 +15,12 @@ defmodule ProbuildEx.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: ProbuildEx.PubSub},
       # Start the Endpoint (http/https)
-      ProbuildExWeb.Endpoint
+      ProbuildExWeb.Endpoint,
       # Start a worker by calling: ProbuildEx.Worker.start_link(arg)
       # {ProbuildEx.Worker, arg}
 
-      # Canon Supervisor
-      # ProbuildEx.Canon.Supervisor
+      # ProbuildEx.Canon.Supervisor,
+      ProbuildEx.Ddragon.Cache
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
