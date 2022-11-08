@@ -9,11 +9,11 @@ defmodule ProbuildEx.Ddragon.Api do
 
   def fetch_versions(), do: get("/api/versions.json")
 
-  def fetch(:champions, patch_version) do
+  def fetch_champions(patch_version) do
     fetch_json(patch_version, "champion")
   end
 
-  def fetch(:summoners, patch_version) do
+  def fetch_summoners(patch_version) do
     fetch_json(patch_version, "summoner")
   end
 

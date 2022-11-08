@@ -15,6 +15,10 @@ defmodule ProbuildEx.Ddragon.Cache do
     GenServer.call(__MODULE__, {:fetch_summoner_img, key})
   end
 
+  def fetch_champion_search_map() do
+    GenServer.call(__MODULE__, :fetch_champion_search_map)
+  end
+
   def init(_) do
     opts = [
       :set,
@@ -30,48 +34,76 @@ defmodule ProbuildEx.Ddragon.Cache do
   end
 
   def handle_continue(:warmup, state) do
-    request_and_cache(:champions)
-    request_and_cache(:summoners)
+    request_and_cache_champions()
+    request_and_cache_summoners()
 
     {:noreply, state}
   end
 
-  defp request_and_cache(type) do
+  defp request_and_cache_champions() do
     with {:ok, %{body: versions}} <- Api.fetch_versions(),
          last_version <- List.first(versions),
-         {:ok, %{body: response}} <- Api.fetch(type, last_version) do
+         {:ok, %{body: response}} <- Api.fetch_champions(last_version) do
+      search_map_fn = fn {_, data} ->
+        k = String.downcase(data["name"])
+        v = String.to_integer(data["key"])
+        {k, v}
+      end
+
+      search_map = create_data_map(response, search_map_fn)
+      :ets.insert(:champions, {:search_map, search_map})
+
       response
-      |> create_images_map()
+      |> create_data_map()
       |> Enum.each(fn {key, img} ->
-        :ets.insert(type, {{:img, key}, img})
+        :ets.insert(:champions, {{:img, key}, img})
       end)
     end
   end
 
-  defp create_images_map(response) do
+  defp request_and_cache_summoners() do
+    with {:ok, %{body: versions}} <- Api.fetch_versions(),
+         last_version <- List.first(versions),
+         {:ok, %{body: response}} <- Api.fetch_summoners(last_version) do
+      response
+      |> create_data_map()
+      |> Enum.each(fn {key, img} ->
+        :ets.insert(:summoners, {{:img, key}, img})
+      end)
+    end
+  end
+
+  defp image_kv({_, data}) do
+    k = String.to_integer(data["key"])
+    v = data["image"]["full"]
+    {k, v}
+  end
+
+  defp create_data_map(response, fn_map \\ &image_kv/1) do
     response
     |> Map.get("data")
-    |> Enum.map(fn {_id, data} ->
-      k = String.to_integer(data["key"])
-      v = data["image"]["full"]
-      {k, v}
-    end)
+    |> Enum.map(fn_map)
     |> Map.new()
   end
 
   def handle_call({:fetch_champion_img, champion_key}, _from, state) do
-    response = lookup(:champions, champion_key)
+    response = lookup(:champions, {:img, champion_key})
     {:reply, response, state}
   end
 
   def handle_call({:fetch_summoner_img, summoner_key}, _from, state) do
-    response = lookup(:summoners, summoner_key)
+    response = lookup(:summoners, {:img, summoner_key})
+    {:reply, response, state}
+  end
+
+  def handle_call(:fetch_champion_search_map, _from, state) do
+    response = lookup(:champions, :search_map)
     {:reply, response, state}
   end
 
   defp lookup(table, key) do
-    case :ets.lookup(table, {:img, key}) do
-      [{_, img}] -> {:ok, img}
+    case :ets.lookup(table, key) do
+      [{_, found}] -> {:ok, found}
       [] -> {:error, :not_found}
     end
   end

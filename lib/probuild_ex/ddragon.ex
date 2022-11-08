@@ -7,6 +7,13 @@ defmodule ProbuildEx.Ddragon do
 
   @ddragon_cdn "https://ddragon.leagueoflegends.com/cdn"
 
+  def get_champion_search_map() do
+    case Cache.fetch_champion_search_map() do
+      {:ok, search_map} -> search_map
+      {:error, _} -> %{}
+    end
+  end
+
   def get_champion_image(game_version, champion_key) do
     case Cache.fetch_champion_img(champion_key) do
       {:ok, img} -> "#{@ddragon_cdn}/#{game_version}/img/champion/#{img}"

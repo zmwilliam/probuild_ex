@@ -3,6 +3,7 @@ defmodule ProbuildEx.App do
 
   alias ProbuildEx.Repo
   alias ProbuildEx.Games.Participant
+  alias ProbuildEx.Ddragon
 
   defmodule Search do
     @moduledoc """
@@ -72,10 +73,22 @@ defmodule ProbuildEx.App do
   defp reduce_pro_participant_opts({:search, nil}, query), do: query
 
   defp reduce_pro_participant_opts({:search, search}, query) do
+    champions_id =
+      Ddragon.get_champion_search_map()
+      |> Enum.reduce([], fn {champ_name, champ_id}, acc ->
+        if String.starts_with?(champ_name, search) do
+          [champ_id | acc]
+        else
+          acc
+        end
+      end)
+
     search_str = search <> "%"
 
     from [participant, pro: pro] in query,
-      where: ilike(pro.name, ^search_str)
+      where:
+        ilike(pro.name, ^search_str) or
+          participant.champion_id in ^champions_id
   end
 
   defp reduce_pro_participant_opts({k, v}, _query),
