@@ -8,15 +8,18 @@ defmodule ProbuildExWeb.GameLive.Index do
 
   @defaults %{
     page_title: "Listing games",
+    update: "append",
     changeset: App.Search.changeset(),
     search: %App.Search{},
+    page: %Scrivener.Page{},
     participants: [],
-    loading?: true
+    loading?: true,
+    load_more?: false
   }
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, @defaults)}
+    {:ok, assign(socket, @defaults), temporary_assigns: [participants: []]}
   end
 
   @impl true
@@ -78,15 +81,49 @@ defmodule ProbuildExWeb.GameLive.Index do
   end
 
   @impl true
-  def handle_info({:query_pro_participants, opts}, socket) do
-    participants = App.list_pro_participant_summoner(opts)
+  def handle_event("load-more", _params, socket) do
+    page = socket.assigns.page
 
     socket =
+      if page.page_number < page.total_pages do
+        opts = Map.from_struct(socket.assigns.search)
+        send(self(), {:query_pro_participants, opts, page.page_number + 1})
+        assign(socket, load_more?: true)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:query_pro_participants, opts}, socket) do
+    socket =
       socket
-      |> assign(participants: participants)
+      |> query_page(opts)
+      |> assign(update: "replace")
       |> assign(loading?: false)
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:query_pro_participants, opts, page_number}, socket) do
+    socket =
+      socket
+      |> query_page(opts, page_number)
+      |> assign(update: "append")
+      |> assign(load_more?: false)
+
+    {:noreply, socket}
+  end
+
+  defp query_page(socket, opts, page_number \\ 1) do
+    page = App.paginate_pro_participants(opts, page_number)
+
+    socket
+    |> assign(page: page)
+    |> assign(participants: page.entries)
   end
 
   defp apply_action(socket, :index, params) do

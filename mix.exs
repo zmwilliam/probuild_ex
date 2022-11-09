@@ -20,7 +20,7 @@ defmodule ProbuildEx.MixProject do
   def application do
     [
       mod: {ProbuildEx.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :scrivener]
     ]
   end
 
@@ -50,7 +50,8 @@ defmodule ProbuildEx.MixProject do
       {:tesla, "~> 1.4"},
       {:hackney, "~> 1.13"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:tailwind, "~> 0.1.6", runtime: Mix.env() == :dev}
+      {:tailwind, "~> 0.1.6", runtime: Mix.env() == :dev},
+      {:scrivener_ecto, "~> 2.7"}
     ]
   end
 

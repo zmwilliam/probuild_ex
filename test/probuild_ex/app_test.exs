@@ -2,8 +2,6 @@ defmodule ProbuildEx.AppTest do
   use ExUnit.Case, async: true
   use ProbuildEx.DataCase
 
-  import ProbuildEx.GamesFixtures
-
   alias ProbuildEx.Games.Participant
   alias ProbuildEx.{App, Games}
   alias ProbuildEx.GameDataFixtures
@@ -59,16 +57,21 @@ defmodule ProbuildEx.AppTest do
       Games.create_game_complete(data.platform_id, data.game_data, summoners_list)
     end
 
-    test "list_pro_participant_summoner/1 should return participant matching the query" do
+    test "paginate_pro_participants/1 should return participant matching the query" do
       create_weiwei_game()
 
-      assert [%Participant{}] = App.list_pro_participant_summoner(%{search: "weiwei"})
-      assert [%Participant{}] = App.list_pro_participant_summoner(%{platform_id: :kr})
-      assert [%Participant{}] = App.list_pro_participant_summoner(%{team_position: :TOP})
+      assert %{total_entries: 1, entries: [%Participant{}]} =
+               App.paginate_pro_participants(%{search: "weiwei"})
 
-      assert [] = App.list_pro_participant_summoner(%{search: "faker"})
-      assert [] = App.list_pro_participant_summoner(%{platform_id: :euw1})
-      assert [] = App.list_pro_participant_summoner(%{team_position: :MIDDLE})
+      assert %{total_entries: 1, entries: [%Participant{}]} =
+               App.paginate_pro_participants(%{platform_id: :kr})
+
+      assert %{total_entries: 1, entries: [%Participant{}]} =
+               App.paginate_pro_participants(%{team_position: :TOP})
+
+      assert %{total_entries: 0} = App.paginate_pro_participants(%{search: "faker"})
+      assert %{total_entries: 0} = App.paginate_pro_participants(%{platform_id: :euw1})
+      assert %{total_entries: 0} = App.paginate_pro_participants(%{team_position: :MIDDLE})
     end
   end
 end

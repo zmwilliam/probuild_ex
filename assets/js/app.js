@@ -24,21 +24,13 @@ import "phoenix_html";
 import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
 import topbar from "../vendor/topbar";
-import { render, cancel } from "../vendor/timeago.js";
 import "./mobile_ui.js";
+import InfiniteScroll from "./infinite_scroll";
+import TimeAgo from "./time_ago";
 
 let Hooks = {
-  TimeAgo: {
-    mounted() {
-      render(this.el, "en_short");
-    },
-    updated() {
-      render(this.el, "en_short");
-    },
-    destroyed() {
-      cancel(this.el);
-    },
-  },
+  TimeAgo: TimeAgo,
+  InfiniteScroll: InfiniteScroll,
 };
 
 let csrfToken = document
