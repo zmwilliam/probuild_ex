@@ -74,4 +74,15 @@ defmodule ProbuildEx.AppTest do
       assert %{total_entries: 0} = App.paginate_pro_participants(%{team_position: :MIDDLE})
     end
   end
+
+  describe "game" do
+    test "fetch_game/1 should return a game" do
+      {:ok, multi} = create_weiwei_game()
+      assert {:ok, _} = App.fetch_game(multi.game.id)
+    end
+
+    test "fetch_game/1 should return a error when no game is found" do
+      assert {:error, :not_found} = App.fetch_game(999)
+    end
+  end
 end

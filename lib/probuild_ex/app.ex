@@ -3,6 +3,7 @@ defmodule ProbuildEx.App do
 
   alias ProbuildEx.Repo
   alias ProbuildEx.Games.Participant
+  alias ProbuildEx.Games.Game
   alias ProbuildEx.Ddragon
 
   defmodule Search do
@@ -85,6 +86,10 @@ defmodule ProbuildEx.App do
           participant.champion_id in ^champions_id
   end
 
+  defp reduce_pro_participant_opts({:participant_id, participant_id}, query) do
+    from participant in query, where: participant.id == ^participant_id
+  end
+
   defp reduce_pro_participant_opts({k, v}, _query),
     do: raise("not supported option #{inspect(k)} with value #{inspect(v)}")
 
@@ -92,5 +97,41 @@ defmodule ProbuildEx.App do
     query = Enum.reduce(search_opts, pro_participant_base_query(), &reduce_pro_participant_opts/2)
 
     Repo.paginate(query, page: page_number)
+  end
+
+  def fetch_game(game_id) do
+    query =
+      from game in Game,
+        left_join: participants in assoc(game, :participants),
+        left_join: summoners in assoc(participants, :summoner),
+        preload: [
+          participants: {participants, summoner: summoners}
+        ],
+        where: game.id == ^game_id,
+        order_by: [
+          asc: participants.team_id,
+          asc:
+            fragment(
+              "array_position(ARRAY['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'], ?)",
+              participants.team_position
+            )
+        ]
+
+    case Repo.one(query) do
+      nil ->
+        {:error, :not_found}
+
+      game ->
+        {:ok, game}
+    end
+  end
+
+  def fetch_pro_participant(search_opts) do
+    query = Enum.reduce(search_opts, pro_participant_base_query(), &reduce_pro_participant_opts/2)
+
+    case Repo.one(query) do
+      nil -> {:error, :not_found}
+      participant -> {:ok, participant}
+    end
   end
 end

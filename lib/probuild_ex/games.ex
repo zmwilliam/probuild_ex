@@ -5,6 +5,7 @@ defmodule ProbuildEx.Games do
 
   import Ecto.Query
 
+  alias Phoenix.PubSub
   alias Ecto.Multi
   alias ProbuildEx.Repo
   alias ProbuildEx.Games.{Team, Pro, Summoner, Game, Participant}
@@ -40,17 +41,33 @@ defmodule ProbuildEx.Games do
     multi = Multi.insert(Multi.new(), :game, change_game(match_data))
 
     multi =
-      Enum.reduce(summoners_list, multi, fn summoner, multi ->
-        reduce_put_or_create_summoner(platform_id, summoner, multi)
-      end)
+      Enum.reduce(summoners_list, multi, &reduce_put_or_create_summoner(platform_id, &1, &2))
 
     participants = get_in(match_data, ["info", "participants"])
 
     multi = Enum.reduce(participants, multi, &reduce_create_participant/2)
     multi = Enum.reduce(participants, multi, &reduce_set_opponent_participant/2)
 
-    Repo.transaction(multi)
+    multi
+    |> Repo.transaction()
+    |> broadcast_game()
   end
+
+  defp broadcast_game({:ok, multi}) do
+    for {{:summoner, pro_puuid}, %{pro_id: pro_id}} when is_integer(pro_id) <- multi do
+      participant = Map.get(multi, {:update_participant, pro_puuid})
+
+      PubSub.broadcast(
+        ProbuildEx.PubSub,
+        "pro_participant:new",
+        {:participant_id, participant.id}
+      )
+    end
+
+    {:ok, multi}
+  end
+
+  defp broadcast_game(result), do: result
 
   defp reduce_set_opponent_participant(data, multi) do
     Multi.update(

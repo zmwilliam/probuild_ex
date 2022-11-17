@@ -1,10 +1,15 @@
 defmodule ProbuildExWeb.GameLive.Index do
   use ProbuildExWeb, :live_view
 
+  import ProbuildExWeb.GameLive.DdragonComponent
+
   alias ProbuildEx.App
   alias ProbuildEx.Ddragon
 
   alias ProbuildExWeb.GameLive.SearchComponent
+  alias ProbuildExWeb.GameLive.RowComponent
+
+  alias Phoenix.PubSub
 
   @defaults %{
     page_title: "Listing games",
@@ -14,7 +19,8 @@ defmodule ProbuildExWeb.GameLive.Index do
     page: %Scrivener.Page{},
     participants: [],
     loading?: true,
-    load_more?: false
+    load_more?: false,
+    subscribed?: false
   }
 
   @impl true
@@ -32,6 +38,19 @@ defmodule ProbuildExWeb.GameLive.Index do
       end
 
     {:noreply, socket}
+  end
+
+  def handle_event("subscribe", _params, socket) do
+    subscribed? =
+      if socket.assigns.subscribed? do
+        unsubscribe()
+      else
+        subscribe()
+      end
+
+    {:noreply,
+     socket
+     |> assign(:subscribed?, subscribed?)}
   end
 
   @impl true
@@ -118,6 +137,24 @@ defmodule ProbuildExWeb.GameLive.Index do
     {:noreply, socket}
   end
 
+  def handle_info({:participant_id, participant_id}, socket) do
+    opts =
+      socket.assigns.search
+      |> Map.from_struct()
+      |> Map.put(:participant_id, participant_id)
+
+    socket =
+      case App.fetch_pro_participant(opts) do
+        {:ok, participant} ->
+          assign(socket, update: "prepend", participants: [participant])
+
+        {:error, _err} ->
+          socket
+      end
+
+    {:noreply, socket}
+  end
+
   defp query_page(socket, opts, page_number \\ 1) do
     page = App.paginate_pro_participants(opts, page_number)
 
@@ -147,5 +184,17 @@ defmodule ProbuildExWeb.GameLive.Index do
   defp push_patch_index(socket) do
     params = Map.from_struct(socket.assigns.search)
     push_patch(socket, to: Routes.game_index_path(socket, :index, params))
+  end
+
+  defp subscribe() do
+    case PubSub.subscribe(ProbuildEx.PubSub, "pro_participant:new") do
+      :ok -> true
+      {:error, _} -> false
+    end
+  end
+
+  defp unsubscribe() do
+    PubSub.unsubscribe(ProbuildEx.PubSub, "pro_participant:new")
+    false
   end
 end
