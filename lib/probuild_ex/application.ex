@@ -19,7 +19,7 @@ defmodule ProbuildEx.Application do
       # Start a worker by calling: ProbuildEx.Worker.start_link(arg)
       # {ProbuildEx.Worker, arg}
 
-      # ProbuildEx.Canon.Supervisor,
+      ProbuildEx.Canon.Supervisor,
       ProbuildEx.Ddragon.Cache
     ]
 
